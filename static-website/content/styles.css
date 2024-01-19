@@ -1,0 +1,40 @@
+body {
+	font-family: Roboto, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-weight: bold;
+}
+
+h1 {
+	font-size: 4vw;
+	text-align: center-right;
+}
+
+h3 {
+	font-size: 1.25vw;
+	
+}
+
+i {
+	color: #3399ff;
+}
+
+.gradient-text {
+  /* Fallback: Set a background color. */
+  background-color: blue;
+  
+  /* Create the gradient. */
+  background-image: linear-gradient(to bottom, #66ccff 0%, #666699 100%);
+  
+  /* Set the background size and repeat properties. */
+  background-size: 100%;
+  background-repeat: repeat;
+
+  /* Use the text as a mask for the background. */
+  /* This will show the gradient as a text color rather than element bg. */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; 
+  -moz-background-clip: text;
+  -moz-text-fill-color: transparent;
+}
