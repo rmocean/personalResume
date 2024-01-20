@@ -1,10 +1,26 @@
 #create unique S3 bucket
-resource "aws_s3_bucket" "bucket" {
-  bucket = "radumocean.com"
+
+
+
+module "s3_buckets" {
+  source = "./s3_buckets"
+  bucket_names = ["radumocean.com"]
 }
 
+#try this approach after I turn on the public access to the bucket
+/*resource "aws_s3_bucket_policy" "bucket_policy" {
+  for_each = module.s3_buckets.my_buckets
+
+  bucket = each.value.bucket
+  policy = file("${path.module}/s3_bucket_policy.json")
+}*/
+
+/*resource "aws_s3_bucket" "bucket" {
+  bucket = "radumocean.com"
+}*/
+
 #define bucket policy
-resource "aws_s3_bucket_policy" "bucket_policy" {
+/*resource "aws_s3_bucket_policy" "bucket_policy" {
   bucket = aws_s3_bucket.bucket.id
   policy = jsonencode(
     {
@@ -20,18 +36,19 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
       ]
     }
   )
-}
+}*/
+
 resource "aws_s3_object" "file" {
-  for_each     = fileset(path.module, "static-website/content/**/*")
-  bucket       = aws_s3_bucket.bucket.id
-  key          = replace(each.value, "static-website/^content//", "")
+  for_each     = fileset(path.module, "static-website/**/*")
+  bucket       = aws_s3_bucket.bucket_names.id
+  key          = replace(each.value, "/^static-website//", "")
   source       = each.value
   content_type = lookup(local.content_types, regex("\\.[^.]+$", each.value), null)
   etag         = filemd5(each.value)
 }
 
 resource "aws_s3_bucket_website_configuration" "hosting" {
-  bucket = aws_s3_bucket.bucket.id
+  bucket = aws_s3_bucket.bucket_names.id
 
   index_document {
     suffix = "index.html"
@@ -44,7 +61,7 @@ resource "aws_cloudfront_distribution" "distribution" {
 
   origin {
     domain_name = aws_s3_bucket_website_configuration.hosting.website_endpoint
-    origin_id   = aws_s3_bucket.bucket.bucket_regional_domain_name
+    origin_id   = aws_s3_bucket.bucket_names.bucket_regional_domain_name
 
     custom_origin_config {
       http_port                = 80
@@ -75,6 +92,6 @@ resource "aws_cloudfront_distribution" "distribution" {
     compress               = true
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = aws_s3_bucket.bucket.bucket_regional_domain_name
+    target_origin_id       = aws_s3_bucket.bucket_names.bucket_regional_domain_name
   }
 }
