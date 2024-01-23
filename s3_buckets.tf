@@ -14,12 +14,6 @@ resource "aws_s3_bucket" "my_buckets" {
       exists = can(data.aws_s3_bucket.existing_buckets[each.key])
     }
   }
-
-  count = validation ? 0 : 1
-
-  tags = {
-    Name = each.key
-  }
 }
 
 data "aws_s3_bucket" "existing_buckets" {

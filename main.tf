@@ -1,12 +1,12 @@
 #create unique S3 bucket
 
 
-
+/*
 module "s3_buckets" {
-  source = "./s3_buckets"
+  source = ".//s3_buckets"
   bucket_names = ["radumocean.com"]
 }
-
+*/
 #try this approach after I turn on the public access to the bucket
 /*resource "aws_s3_bucket_policy" "bucket_policy" {
   for_each = module.s3_buckets.my_buckets
@@ -14,10 +14,9 @@ module "s3_buckets" {
   bucket = each.value.bucket
   policy = file("${path.module}/s3_bucket_policy.json")
 }*/
-
-/*resource "aws_s3_bucket" "bucket" {
+resource "aws_s3_bucket" "bucket" {
   bucket = "radumocean.com"
-}*/
+}
 
 #define bucket policy
 /*resource "aws_s3_bucket_policy" "bucket_policy" {
