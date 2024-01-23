@@ -39,7 +39,7 @@ resource "aws_s3_bucket" "bucket" {
 
 resource "aws_s3_object" "file" {
   for_each     = fileset(path.module, "static-website/**/*")
-  bucket       = aws_s3_bucket.bucket_names.id
+  bucket       = aws_s3_bucket.bucket.id
   key          = replace(each.value, "/^static-website//", "")
   source       = each.value
   content_type = lookup(local.content_types, regex("\\.[^.]+$", each.value), null)
@@ -47,7 +47,7 @@ resource "aws_s3_object" "file" {
 }
 
 resource "aws_s3_bucket_website_configuration" "hosting" {
-  bucket = aws_s3_bucket.bucket_names.id
+  bucket = aws_s3_bucket.bucket.id
 
   index_document {
     suffix = "index.html"
@@ -60,7 +60,7 @@ resource "aws_cloudfront_distribution" "distribution" {
 
   origin {
     domain_name = aws_s3_bucket_website_configuration.hosting.website_endpoint
-    origin_id   = aws_s3_bucket.bucket_names.bucket_regional_domain_name
+    origin_id   = aws_s3_bucket.bucket.bucket_regional_domain_name
 
     custom_origin_config {
       http_port                = 80
@@ -91,6 +91,6 @@ resource "aws_cloudfront_distribution" "distribution" {
     compress               = true
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = aws_s3_bucket.bucket_names.bucket_regional_domain_name
+    target_origin_id       = aws_s3_bucket.bucket.bucket_regional_domain_name
   }
 }

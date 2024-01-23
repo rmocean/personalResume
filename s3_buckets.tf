@@ -1,3 +1,4 @@
+/*
 variable "bucket_names" {
   type    = list(string)
   default = []
@@ -21,3 +22,4 @@ data "aws_s3_bucket" "existing_buckets" {
 
   bucket = each.value
 }
+*/
