@@ -1,2 +1,2 @@
 cloudfront_aliases = ["radumocean.com"]
-acm_certificate_arn = "arn:aws:acm:us-east-1:531888737689:certificate/186b9861-8d1d-4460-aff0-f3c641bfe9f4"
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id"
