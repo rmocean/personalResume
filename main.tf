@@ -195,3 +195,10 @@ resource "aws_lambda_permission" "visitor_counter_function_url_permission" {
   function_url_auth_type = "NONE"
 }
 
+resource "aws_lambda_permission" "visitor_counter_invoke_from_url_permission" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.visitor_counter.function_name
+  principal     = "*"
+}
+
