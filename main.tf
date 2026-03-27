@@ -72,6 +72,7 @@ resource "aws_s3_bucket_website_configuration" "hosting" {
 resource "aws_cloudfront_distribution" "distribution" {
   enabled         = true
   is_ipv6_enabled = true
+  aliases         = var.cloudfront_aliases
 
   origin {
     domain_name = aws_s3_bucket_website_configuration.hosting.website_endpoint
@@ -90,7 +91,9 @@ resource "aws_cloudfront_distribution" "distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = var.acm_certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   restrictions {
@@ -178,7 +181,7 @@ resource "aws_lambda_function_url" "visitor_counter_url" {
 
   cors {
     allow_origins = ["*"]
-    allow_methods = ["GET", "OPTIONS"]
+    allow_methods = ["GET"]
     allow_headers = ["content-type"]
     max_age       = 86400
   }
