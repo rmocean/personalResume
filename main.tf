@@ -38,12 +38,27 @@ resource "aws_s3_bucket" "bucket" {
 }*/
 
 resource "aws_s3_object" "file" {
-  for_each     = fileset(path.module, "static-website/**/*")
+  for_each = {
+    for file in fileset(path.module, "static-website/**/*") : file => file
+    if file != "static-website/index.html"
+  }
   bucket       = aws_s3_bucket.bucket.id
   key          = replace(each.value, "/^static-website//", "")
   source       = each.value
   content_type = lookup(local.content_types, regex("\\.[^.]+$", each.value), null)
   etag         = filemd5(each.value)
+}
+
+resource "aws_s3_object" "index_file" {
+  bucket = aws_s3_bucket.bucket.id
+  key    = "index.html"
+  content = templatefile("${path.module}/static-website/index.html", {
+    visitor_counter_url = aws_lambda_function_url.visitor_counter_url.function_url
+  })
+  content_type = "text/html"
+  etag = md5(templatefile("${path.module}/static-website/index.html", {
+    visitor_counter_url = aws_lambda_function_url.visitor_counter_url.function_url
+  }))
 }
 
 resource "aws_s3_bucket_website_configuration" "hosting" {
@@ -93,5 +108,87 @@ resource "aws_cloudfront_distribution" "distribution" {
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = aws_s3_bucket.bucket.bucket_regional_domain_name
   }
+}
+
+data "archive_file" "visitor_counter_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/visitor_counter.py"
+  output_path = "${path.module}/lambda/visitor_counter.zip"
+}
+
+resource "aws_iam_role" "visitor_counter_lambda_role" {
+  name = "visitor-counter-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "visitor_counter_lambda_basic" {
+  role       = aws_iam_role.visitor_counter_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "visitor_counter_dynamodb_policy" {
+  name = "visitor-counter-dynamodb-policy"
+  role = aws_iam_role.visitor_counter_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem"
+        ]
+        Resource = aws_dynamodb_table.visitor_counter.arn
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "visitor_counter" {
+  function_name    = "visitor-counter"
+  role             = aws_iam_role.visitor_counter_lambda_role.arn
+  handler          = "visitor_counter.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.visitor_counter_zip.output_path
+  source_code_hash = data.archive_file.visitor_counter_zip.output_base64sha256
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.visitor_counter.name
+    }
+  }
+}
+
+resource "aws_lambda_function_url" "visitor_counter_url" {
+  function_name      = aws_lambda_function.visitor_counter.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_origins = ["*"]
+    allow_methods = ["GET", "OPTIONS"]
+    allow_headers = ["content-type"]
+    max_age       = 86400
+  }
+}
+
+resource "aws_lambda_permission" "visitor_counter_function_url_permission" {
+  statement_id           = "AllowPublicFunctionUrlInvoke"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.visitor_counter.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
 }
 
